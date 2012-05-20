@@ -27,6 +27,7 @@ class PliExtraInfo(Poll, Converter, object):
 			( "0x900",  "0x9ff", "NDS",     "Nd"),
 			( "0xb00",  "0xbff", "Conax",   "Co"),
 			( "0xd00",  "0xdff", "CryptoW", "Cw"),
+			( "0xe00",  "0xeff", "PowerVU", "P" ),
 			("0x1700", "0x17ff", "Beta",    "B" ),
 			("0x1800", "0x18ff", "Nagra",   "N" ),
 			("0x2600", "0x2600", "Biss",    "Bi"),
@@ -94,6 +95,11 @@ class PliExtraInfo(Poll, Converter, object):
 	def createVideoCodec(self,info):
 		return ("MPEG2", "MPEG4", "MPEG1", "MPEG4-II", "VC1", "VC1-SM", "")[info.getInfo(iServiceInformation.sVideoType)]
 
+	def createTransponderInfo(self,fedata,feraw):
+		return addspace(self.createTunerSystem(fedata)) + addspace(self.createFrequency(fedata)) + addspace(self.createPolarization(fedata))\
+			+ addspace(self.createSymbolRate(fedata)) + addspace(self.createFEC(fedata)) + addspace(self.createModulation(fedata))\
+			+ self.createOrbPos(feraw)
+		
 	def createFrequency(self,fedata):
 		frequency = fedata.get("frequency")
 		if frequency:
@@ -195,13 +201,11 @@ class PliExtraInfo(Poll, Converter, object):
 		if self.type == "All":
 			self.getCryptoInfo(info)
 			if config.usage.show_cryptoinfo.value:
-				return addspace(self.createProviderName(info)) + addspace(self.createTunerSystem(fedata)) + addspace(self.createFrequency(fedata)) + addspace(self.createPolarization(fedata))\
-				+ addspace(self.createSymbolRate(fedata)) + addspace(self.createFEC(fedata)) + addspace(self.createModulation(fedata)) + self.createOrbPos(feraw) + "\n"\
+				return addspace(self.createProviderName(info)) + self.createTransponderInfo(fedata,feraw) + "\n"\
 				+ addspace(self.createCryptoBar(info)) + addspace(self.createCryptoSpecial(info)) + "\n"\
 				+ addspace(self.createVideoCodec(info)) + self.createResolution(info)
 			else:
-				return addspace(self.createProviderName(info)) + addspace(self.createTunerSystem(fedata)) + addspace(self.createFrequency(fedata)) + addspace(self.createPolarization(fedata))\
-				+ addspace(self.createSymbolRate(fedata)) + addspace(self.createFEC(fedata)) + addspace(self.createModulation(fedata)) + self.createOrbPos(feraw) + "\n"\
+				return addspace(self.createProviderName(info)) + self.createTransponderInfo(fedata,feraw) + "\n"\
 				+ addspace(self.createCryptoBar(info)) + self.current_source + "\n"\
 				+ addspace(self.createCryptoSpecial(info)) + addspace(self.createVideoCodec(info)) + self.createResolution(info)
 
@@ -209,6 +213,9 @@ class PliExtraInfo(Poll, Converter, object):
 			return addspace(self.createProviderName(info)) + addspace(self.createTunerSystem(fedata)) + addspace(self.createFrequency(fedata)) + addspace(self.createPolarization(fedata))\
 			+ addspace(self.createSymbolRate(fedata)) + addspace(self.createFEC(fedata)) + addspace(self.createModulation(fedata)) + addspace(self.createOrbPos(feraw))\
 			+ addspace(self.createVideoCodec(info)) + self.createResolution(info)
+
+		if self.type == "TransponderInfo":	
+			return self.createTransponderInfo(fedata,feraw)
 
 		if self.type == "TransponderFrequency":
 			return self.createFrequency(fedata)
@@ -264,6 +271,9 @@ class PliExtraInfo(Poll, Converter, object):
 		elif self.type == "CryptoCaidCryptoWAvailable":
 			request_caid = "Cw"
 			request_selected = False
+		elif self.type == "CryptoCaidPowerVUAvailable":
+			request_caid = "P"
+			request_selected = False
 		elif self.type == "CryptoCaidBetaAvailable":
 			request_caid = "B"
 			request_selected = False
@@ -293,6 +303,9 @@ class PliExtraInfo(Poll, Converter, object):
 			request_selected = True
 		elif self.type == "CryptoCaidCryptoWSelected":
 			request_caid = "Cw"
+			request_selected = True
+		elif self.type == "CryptoCaidPowerVUSelected":
+			request_caid = "P"
 			request_selected = True
 		elif self.type == "CryptoCaidBetaSelected":
 			request_caid = "B"

@@ -165,15 +165,13 @@ eDVBAdapterLinux::eDVBAdapterLinux(int nr): m_nr(nr)
 	int num_demux = 0;
 	while (1)
 	{
-		struct stat s;
 		char filename[128];
 #if HAVE_DVB_API_VERSION < 3
 		sprintf(filename, "/dev/dvb/card%d/demux%d", m_nr, num_demux);
 #else
 		sprintf(filename, "/dev/dvb/adapter%d/demux%d", m_nr, num_demux);
 #endif
-		if (stat(filename, &s))
-			break;
+		if (::access(filename, R_OK) < 0) break;
 		ePtr<eDVBDemux> demux;
 
 		demux = new eDVBDemux(m_nr, num_demux);
@@ -229,16 +227,13 @@ RESULT eDVBAdapterLinux::getFrontend(ePtr<eDVBFrontend> &fe, int nr, bool simula
 
 int eDVBAdapterLinux::exist(int nr)
 {
-	struct stat s;
 	char filename[128];
 #if HAVE_DVB_API_VERSION < 3
 	sprintf(filename, "/dev/dvb/card%d", nr);
 #else
 	sprintf(filename, "/dev/dvb/adapter%d", nr);
 #endif
-	if (!stat(filename, &s))
-		return 1;
-	return 0;
+	return (::access(filename, X_OK) >= 0) ? 1 : 0;
 }
 
 eDVBResourceManager::~eDVBResourceManager()

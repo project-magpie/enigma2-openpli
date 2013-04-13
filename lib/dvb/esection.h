@@ -102,6 +102,17 @@ class eAUTable: public eAUGTable
 	/* needed to detect broken table version handling (seen on some m2ts files) */
 	struct timespec m_prev_table_update;
 	int m_table_cnt;
+
+	void begin(eMainloop *m)
+	{
+		m_table_cnt = 0;
+		ml = m;
+		first= 1;
+		current = 0;
+		next = new Table();
+		CONNECT(next->tableReady, eAUTable::slotTableReady);
+	}
+
 public:
 
 	eAUTable()
@@ -121,14 +132,15 @@ public:
 
 	int begin(eMainloop *m, const eDVBTableSpec &spec, ePtr<iDVBDemux> demux)
 	{
-		m_table_cnt = 0;
-		ml = m;
-		m_demux = demux;
-		first= 1;
-		current = 0;
-		next = new Table();
-		CONNECT(next->tableReady, eAUTable::slotTableReady);
+		begin(m);
 		next->start(demux, spec);
+		return 0;
+	}
+
+	int begin(eMainloop *m, const eDVBTableSpec &spec, ePtr<iDVBSectionReader> reader)
+	{
+		begin(m);
+		next->start(reader, spec);
 		return 0;
 	}
 

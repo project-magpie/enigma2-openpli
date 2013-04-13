@@ -1,4 +1,5 @@
 #include <lib/dvb/tstools.h>
+#include <lib/dvb/specs.h>
 #include <lib/base/eerror.h>
 #include <lib/base/cachedtssource.h>
 #include <unistd.h>
@@ -8,6 +9,37 @@
 
 static const int m_maxrange = 256*1024;
 
+DEFINE_REF(eTSFileSectionReader);
+
+eTSFileSectionReader::eTSFileSectionReader(eMainloop *context)
+{
+	sectionSize = 0;
+}
+
+eTSFileSectionReader::~eTSFileSectionReader()
+{
+}
+
+void eTSFileSectionReader::data(unsigned char *packet, unsigned int size)
+{
+	/* TODO: assemble entire section, and feed it to our read signal */
+}
+
+RESULT eTSFileSectionReader::start(const eDVBSectionFilterMask &mask)
+{
+	return 0;
+}
+
+RESULT eTSFileSectionReader::stop()
+{
+	return 0;
+}
+
+RESULT eTSFileSectionReader::connectRead(const Slot1<void,const __u8*> &r, ePtr<eConnection> &conn)
+{
+	conn = new eConnection(this, read.connect(r));
+	return 0;
+}
 
 eDVBTSTools::eDVBTSTools():
 	m_pid(-1),
@@ -657,6 +689,8 @@ int eDVBTSTools::takeSample(off_t off, pts_t &p)
 
 int eDVBTSTools::findPMT(int *pmt_pid, int *service_id, int* pcr_pid)
 {
+	ePtr<iDVBSectionReader> sectionreader;
+
 		/* FIXME: this will be factored out soon! */
 	if (!m_source || !m_source->valid())
 	{
@@ -710,16 +744,37 @@ int eDVBTSTools::findPMT(int *pmt_pid, int *service_id, int* pcr_pid)
 
 		if (sec[1] == 0x02) /* program map section */
 		{
-			if (pmt_pid)
-				*pmt_pid = ((packet[1] << 8) | packet[2]) & 0x1FFF;
-			if (service_id)
-				*service_id = (sec[4] << 8) | sec[5];
-			if (pcr_pid)
-				*pcr_pid = ((sec[9] << 8) | sec[10]) & 0x1FFF; /* 13-bits */
+			if (!sectionreader)
+			{
+				int pmtpid = ((packet[1] << 8) | packet[2]) & 0x1FFF;
+				int sid = (sec[4] << 8) | sec[5];
+				if (pmt_pid)
+					*pmt_pid = pmtpid;
+				if (service_id)
+					*service_id = sid;
+				if (pcr_pid)
+					*pcr_pid = ((sec[9] << 8) | sec[10]) & 0x1FFF; /* 13-bits */
+
+				m_pmtready = false;
+				sectionreader = new eTSFileSectionReader(eApp);
+				m_PMT.begin(eApp, eDVBPMTSpec(pmtpid, sid), sectionreader);
+				((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(packet, 188);
+			}
+			else
+			{
+				((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(packet, 188);
+			}
+		}
+		if (m_pmtready)
+		{
+			program program;
+			getProgramInfo(program);
+			m_PMT.stop();
+			/* TODO: pass the full program info back to the caller */
 			return 0;
 		}
 	}
-	
+	m_PMT.stop();
 	return -1;
 }
 
@@ -872,4 +927,9 @@ int eDVBTSTools::findNextPicture(off_t &offset, size_t &len, int &distance, int 
 //	eDebug("in total, we moved %d frames", nr_frames);
 
 	return 0;
+}
+
+void eDVBTSTools::PMTready(int error)
+{
+	m_pmtready = true;
 }

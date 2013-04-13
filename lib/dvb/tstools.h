@@ -5,6 +5,8 @@
 #include <lib/dvb/pvrparse.h>
 #include <lib/base/rawfile.h>
 #include <lib/base/elock.h>
+#include <lib/dvb/pmtparse.h>
+#include <lib/dvb/idemux.h>
 
 /*
  * Note: we're interested in PTS values, not STC values.
@@ -13,7 +15,24 @@
 
 typedef long long pts_t;
 
-class eDVBTSTools
+class eTSFileSectionReader: public iDVBSectionReader, public Object
+{
+	DECLARE_REF(eTSFileSectionReader);
+	unsigned char sectionData[4096];
+	unsigned int sectionSize;
+	Signal1<void, const __u8*> read;
+
+public:
+	eTSFileSectionReader(eMainloop *context);
+	virtual ~eTSFileSectionReader();
+	void data(unsigned char *packet, unsigned int size);
+	RESULT setBufferSize(int size) { return 0; }
+	RESULT start(const eDVBSectionFilterMask &mask);
+	RESULT stop();
+	RESULT connectRead(const Slot1<void,const __u8*> &read, ePtr<eConnection> &conn);
+};
+
+class eDVBTSTools : public eDVBPMTParser
 {
 public:
 	eDVBTSTools();
@@ -87,6 +106,9 @@ private:
 	eMPEGStreamInformation m_streaminfo;
 	off_t m_last_filelength;
 	int m_futile;
+	bool m_pmtready;
+
+	void PMTready(int error);
 };
 
 #endif

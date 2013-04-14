@@ -97,6 +97,7 @@ class eAUTable: public eAUGTable
 	ePtr<Table> current, next;		// current is READY AND ERRORFREE, next is not yet ready
 	int first;
 	ePtr<iDVBDemux> m_demux;
+	ePtr<iDVBSectionReader> m_reader;
 	eMainloop *ml;
 
 	/* needed to detect broken table version handling (seen on some m2ts files) */
@@ -134,6 +135,7 @@ public:
 	{
 		begin(m);
 		m_demux = demux;
+		m_reader = 0;
 		next->start(demux, spec);
 		return 0;
 	}
@@ -142,6 +144,7 @@ public:
 	{
 		begin(m);
 		m_demux = 0;
+		m_reader = reader;
 		next->start(reader, spec);
 		return 0;
 	}
@@ -235,7 +238,14 @@ public:
 			next = new Table();
 			CONNECT(next->tableReady, eAUTable::slotTableReady);
 			spec.flags &= ~(eDVBTableSpec::tfAnyVersion|eDVBTableSpec::tfThisVersion|eDVBTableSpec::tfHaveTimeout);
-			next->eGTable::start(m_demux, spec);
+			if (m_demux)
+			{
+				next->eGTable::start(m_demux, spec);
+			}
+			else if (m_reader)
+			{
+				next->eGTable::start(m_reader, spec);
+			}
 		}
 	}
 };

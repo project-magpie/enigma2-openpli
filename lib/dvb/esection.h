@@ -133,6 +133,7 @@ public:
 	int begin(eMainloop *m, const eDVBTableSpec &spec, ePtr<iDVBDemux> demux)
 	{
 		begin(m);
+		m_demux = demux;
 		next->start(demux, spec);
 		return 0;
 	}
@@ -140,6 +141,7 @@ public:
 	int begin(eMainloop *m, const eDVBTableSpec &spec, ePtr<iDVBSectionReader> reader)
 	{
 		begin(m);
+		m_demux = 0;
 		next->start(reader, spec);
 		return 0;
 	}

@@ -698,9 +698,11 @@ int eDVBTSTools::takeSample(off_t off, pts_t &p)
 	return -1;
 }
 
-int eDVBTSTools::findPMT(int *pmt_pid, int *service_id, int* pcr_pid)
+int eDVBTSTools::findPMT(eDVBPMTParser::program &program)
 {
 	ePtr<iDVBSectionReader> sectionreader;
+
+	eDVBPMTParser::clearProgramInfo(program);
 
 		/* FIXME: this will be factored out soon! */
 	if (!m_source || !m_source->valid())
@@ -760,13 +762,6 @@ int eDVBTSTools::findPMT(int *pmt_pid, int *service_id, int* pcr_pid)
 			{
 				int pmtpid = ((packet[1] << 8) | packet[2]) & 0x1FFF;
 				int sid = (sec[4] << 8) | sec[5];
-				if (pmt_pid)
-					*pmt_pid = pmtpid;
-				if (service_id)
-					*service_id = sid;
-				if (pcr_pid)
-					*pcr_pid = ((sec[9] << 8) | sec[10]) & 0x1FFF; /* 13-bits */
-
 				sectionreader = new eTSFileSectionReader(eApp);
 				m_PMT.begin(eApp, eDVBPMTSpec(pmtpid, sid), sectionreader);
 				((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(&sec[1], 188 - (sec + 1 - packet));
@@ -778,10 +773,7 @@ int eDVBTSTools::findPMT(int *pmt_pid, int *service_id, int* pcr_pid)
 		}
 		if (m_pmtready)
 		{
-			program program;
-			getProgramInfo(program);
-			/* TODO: pass the full program info back to the caller */
-			return 0;
+			return getProgramInfo(program);
 		}
 	}
 	m_PMT.stop();

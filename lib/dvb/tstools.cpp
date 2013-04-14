@@ -773,7 +773,8 @@ int eDVBTSTools::findPMT(eDVBPMTParser::program &program)
 		}
 		if (m_pmtready)
 		{
-			return getProgramInfo(program);
+			program = m_program;
+			return 0;
 		}
 	}
 	m_PMT.stop();
@@ -935,7 +936,10 @@ void eDVBTSTools::PMTready(int error)
 {
 	if (!error)
 	{
-		m_PMT.stop();
-		m_pmtready = true;
+		if (getProgramInfo(m_program) >= 0)
+		{
+			m_PMT.stop();
+			m_pmtready = true;
+		}
 	}
 }

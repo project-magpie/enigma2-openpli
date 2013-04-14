@@ -105,6 +105,7 @@ private:
 	eMPEGStreamInformation m_streaminfo;
 	off_t m_last_filelength;
 	int m_futile;
+	program m_program;
 	bool m_pmtready;
 
 	void PMTready(int error);

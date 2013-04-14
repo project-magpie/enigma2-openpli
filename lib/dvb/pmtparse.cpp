@@ -29,6 +29,7 @@ void eDVBPMTParser::clearProgramInfo(program &program)
 	program.textPid = -1;
 	program.aitPid = -1;
 	program.dsmccPid = -1;
+	program.serviceId = -1;
 
 	program.defaultAudioStream = 0;
 	program.defaultSubtitleStream = -1;
@@ -53,6 +54,7 @@ int eDVBPMTParser::getProgramInfo(program &program)
 			const ProgramMapSection &pmt = **i;
 			int is_hdmv = 0;
 
+			program.serviceId = pmt.getProgramNumber();
 			program.pcrPid = pmt.getPcrPid();
 
 			for (DescriptorConstIterator desc = pmt.getDescriptors()->begin();

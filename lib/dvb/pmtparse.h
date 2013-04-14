@@ -85,6 +85,7 @@ public:
 		int textPid;
 		int aitPid;
 		int dsmccPid;
+		int serviceId;
 		bool isCrypted() { return !caids.empty(); }
 		PyObject *createPythonObject();
 	};

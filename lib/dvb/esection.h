@@ -129,6 +129,7 @@ public:
 	{
 		current = next = 0;
 		m_demux = 0;
+		m_reader = 0;
 	}
 
 	int begin(eMainloop *m, const eDVBTableSpec &spec, ePtr<iDVBDemux> demux)

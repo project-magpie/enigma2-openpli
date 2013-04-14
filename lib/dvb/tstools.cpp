@@ -22,16 +22,27 @@ eTSFileSectionReader::~eTSFileSectionReader()
 
 void eTSFileSectionReader::data(unsigned char *packet, unsigned int size)
 {
-	/* TODO: assemble entire section, and feed it to our read signal */
+	if (sectionSize + size <= sizeof(sectionData))
+	{
+		memcpy(&sectionData[sectionSize], packet, size);
+		sectionSize += size;
+	}
+	if (sectionSize >= 3 + ((sectionData[1] & 0x0f) << 8) + sectionData[2])
+	{
+		sectionSize = 0;
+		read(sectionData);
+	}
 }
 
 RESULT eTSFileSectionReader::start(const eDVBSectionFilterMask &mask)
 {
+	sectionSize = 0;
 	return 0;
 }
 
 RESULT eTSFileSectionReader::stop()
 {
+	sectionSize = 0;
 	return 0;
 }
 
@@ -699,6 +710,7 @@ int eDVBTSTools::findPMT(int *pmt_pid, int *service_id, int* pcr_pid)
 	}
 
 	off_t position=0;
+	m_pmtready = false;
 
 	for (int attempts_left = (5*1024*1024)/188; attempts_left != 0; --attempts_left)
 	{
@@ -724,7 +736,7 @@ int eDVBTSTools::findPMT(int *pmt_pid, int *service_id, int* pcr_pid)
 			continue;
 		}
 		
-		if (!(packet[1] & 0x40)) /* pusi */
+		if (!sectionreader && !(packet[1] & 0x40)) /* pusi */
 			continue;
 		
 			/* ok, now we have a PES header or section header*/
@@ -755,21 +767,19 @@ int eDVBTSTools::findPMT(int *pmt_pid, int *service_id, int* pcr_pid)
 				if (pcr_pid)
 					*pcr_pid = ((sec[9] << 8) | sec[10]) & 0x1FFF; /* 13-bits */
 
-				m_pmtready = false;
 				sectionreader = new eTSFileSectionReader(eApp);
 				m_PMT.begin(eApp, eDVBPMTSpec(pmtpid, sid), sectionreader);
-				((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(packet, 188);
+				((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(&sec[1], 188 - (sec + 1 - packet));
 			}
 			else
 			{
-				((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(packet, 188);
+				((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(&sec[1], 188 - (sec + 1 - packet));
 			}
 		}
 		if (m_pmtready)
 		{
 			program program;
 			getProgramInfo(program);
-			m_PMT.stop();
 			/* TODO: pass the full program info back to the caller */
 			return 0;
 		}
@@ -931,5 +941,9 @@ int eDVBTSTools::findNextPicture(off_t &offset, size_t &len, int &distance, int 
 
 void eDVBTSTools::PMTready(int error)
 {
-	m_pmtready = true;
+	if (!error)
+	{
+		m_PMT.stop();
+		m_pmtready = true;
+	}
 }

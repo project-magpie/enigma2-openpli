@@ -568,6 +568,8 @@ int eDVBServicePMTHandler::getProgramInfo(program &program)
 		}
 		if (program.defaultSubtitleStream != -1 && (equallanguagemask & (1<<(autosub_level-1))) == 0 && program.subtitleStreams[program.defaultSubtitleStream].language_code.compare(program.audioStreams[program.defaultAudioStream].language_code) == 0 )
 			program.defaultSubtitleStream = -1;
+
+		ret = 0;
 	}
 	else if ( m_service && !m_service->cacheEmpty() )
 	{

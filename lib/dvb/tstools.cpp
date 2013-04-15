@@ -700,6 +700,7 @@ int eDVBTSTools::takeSample(off_t off, pts_t &p)
 
 int eDVBTSTools::findPMT(eDVBPMTParser::program &program)
 {
+	int pmtpid = -1;
 	ePtr<iDVBSectionReader> sectionreader;
 
 	eDVBPMTParser::clearProgramInfo(program);
@@ -738,7 +739,7 @@ int eDVBTSTools::findPMT(eDVBPMTParser::program &program)
 			continue;
 		}
 		
-		if (!sectionreader && !(packet[1] & 0x40)) /* pusi */
+		if (pmtpid < 0 && !(packet[1] & 0x40)) /* pusi */
 			continue;
 		
 			/* ok, now we have a PES header or section header*/
@@ -752,24 +753,23 @@ int eDVBTSTools::findPMT(eDVBPMTParser::program &program)
 			sec = packet + packet[4] + 4 + 1;
 		} else
 			sec = packet + 4;
-		
-		if (sec[0])	/* table pointer, assumed to be 0 */
-			continue;
 
-		if (sec[1] == 0x02) /* program map section */
+		if (pmtpid < 0)
 		{
-			if (!sectionreader)
+			if (sec[0]) /* table pointer, assumed to be 0 */
+				continue;
+			if (sec[1] == 0x02) /* program map section */
 			{
-				int pmtpid = ((packet[1] << 8) | packet[2]) & 0x1FFF;
+				pmtpid = ((packet[1] << 8) | packet[2]) & 0x1FFF;
 				int sid = (sec[4] << 8) | sec[5];
 				sectionreader = new eTSFileSectionReader(eApp);
 				m_PMT.begin(eApp, eDVBPMTSpec(pmtpid, sid), sectionreader);
 				((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(&sec[1], 188 - (sec + 1 - packet));
 			}
-			else
-			{
-				((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(&sec[1], 188 - (sec + 1 - packet));
-			}
+		}
+		else if (pmtpid == ((packet[1] << 8) | packet[2]) & 0x1FFF)
+		{
+			((eTSFileSectionReader*)(iDVBSectionReader*)sectionreader)->data(sec, 188 - (sec - packet));
 		}
 		if (m_pmtready)
 		{

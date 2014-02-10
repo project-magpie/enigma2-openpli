@@ -7,8 +7,8 @@ import struct
 # asm-generic/ioctl.h
 IOC_NRBITS = 8L
 IOC_TYPEBITS = 8L
-IOC_SIZEBITS = 13L
-IOC_DIRBITS = 3L
+IOC_SIZEBITS = 14L
+IOC_DIRBITS = 2L
 
 IOC_NRSHIFT = 0L
 IOC_TYPESHIFT = IOC_NRSHIFT+IOC_NRBITS
@@ -36,11 +36,11 @@ class inputDevices:
 				buffer = "\0"*512
 				self.fd = os_open("/dev/input/" + evdev, O_RDWR | O_NONBLOCK)
 				self.name = ioctl(self.fd, EVIOCGNAME(256), buffer)
+				print '[iInputDevices] getInputDevices  < /dev/input/' + str(evdev) + '> name: ' + str(self.name) + ' type: ' + self.getInputDeviceType(self.name)
 				self.name = self.name[:self.name.find("\0")]
 				os_close(self.fd)
 			except (IOError,OSError), err:
 				print '[iInputDevices] getInputDevices  <ERROR: ioctl(EVIOCGNAME): ' + str(err) + ' >' + ' device: /dev/input/' + str(evdev)
-				self.name = str(evdev)
 
 			if self.name:
 				self.Devices[evdev] = {'name': self.name, 'type': self.getInputDeviceType(self.name),'enabled': False, 'configuredName': None }
@@ -48,6 +48,8 @@ class inputDevices:
 
 	def getInputDeviceType(self,name):
 		if "remote control" in name:
+			return "remote"
+		if "lircd" in name:
 			return "remote"
 		elif "keyboard" in name:
 			return "keyboard"

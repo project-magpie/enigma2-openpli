@@ -36,7 +36,6 @@ class inputDevices:
 				buffer = "\0"*512
 				self.fd = os_open("/dev/input/" + evdev, O_RDWR | O_NONBLOCK)
 				self.name = ioctl(self.fd, EVIOCGNAME(256), buffer)
-				print '[iInputDevices] getInputDevices  < /dev/input/' + str(evdev) + '> name: ' + str(self.name) + ' type: ' + self.getInputDeviceType(self.name)
 				self.name = self.name[:self.name.find("\0")]
 				os_close(self.fd)
 			except (IOError,OSError), err:

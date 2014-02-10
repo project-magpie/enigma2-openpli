@@ -39,8 +39,8 @@ class inputDevices:
 				self.name = self.name[:self.name.find("\0")]
 				os_close(self.fd)
 			except (IOError,OSError), err:
-				print '[iInputDevices] getInputDevices  <ERROR: ioctl(EVIOCGNAME): ' + str(err) + ' >'
-				self.name = None
+				print '[iInputDevices] getInputDevices  <ERROR: ioctl(EVIOCGNAME): ' + str(err) + ' >' + ' device: /dev/input/' + str(evdev)
+				self.name = str(evdev)
 
 			if self.name:
 				self.Devices[evdev] = {'name': self.name, 'type': self.getInputDeviceType(self.name),'enabled': False, 'configuredName': None }
